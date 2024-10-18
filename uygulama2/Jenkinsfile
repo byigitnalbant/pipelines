@@ -1,1 +1,27 @@
+def job_name = "${env.JOB_NAME}".split('/')[0]
+def branch = "${env.JOB_NAME}".split('/')[1]
+def pipelineDirectory = "/var/jenkins_home/pipelines-${branch}"
 
+pipeline {
+        agent any
+        options {
+                disableConcurrentBuilds()
+        }
+        stages {
+                stage('update pipeline') {
+                        steps {
+                                script {
+                                        sh "git -C " + pipelineDirectory + " fetch"
+                                        sh "git -C " + pipelineDirectory + " checkout -m ${branch}"
+                                        sh "git -C " + pipelineDirectory + " reset --hard origin/${branch}"
+                                }
+                        }
+                }
+        stage('docker build') {
+                        steps {
+                                script {
+                                        sh "cp " + pipelineDirectory + "/${job_name}/Dockerfile ."
+                                        sh "docker build . --build-arg APPLICATION=${job_name} -t bnalbant/${job_name}:main-v${env.BUILD_ID}"
+                                }
+                        }
+                }
